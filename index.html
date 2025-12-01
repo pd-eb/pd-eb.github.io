@@ -4,612 +4,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VeloVenture - 3D Story Configurator</title>
-
+    <title>VeloVenture - Start</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .animate-fadeIn {
-            animation: fadeIn 0.5s ease-out;
-        }
-
-        .animate-slideUp {
-            animation: slideUp 0.5s ease-out;
-        }
-
-        /* Canvas Container Styling */
-        #canvas-container {
-            outline: none;
-            cursor: grab;
-        }
-
-        #canvas-container:active {
-            cursor: grabbing;
-        }
     </style>
 </head>
 
-<body class="bg-gradient-to-br from-slate-50 to-slate-200 min-h-screen text-slate-800">
+<body class="bg-gradient-to-br from-slate-50 to-slate-200 min-h-screen flex items-center justify-center text-slate-800">
 
-    <div id="root"></div>
+    <div class="text-center space-y-8 max-w-2xl px-4">
+        <h1 class="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-teal-500">
+            VeloVenture
+        </h1>
+        <p class="text-xl text-gray-600">
+            Entdecke die Welt der eBikes. Wähle dein Abenteuer.
+        </p>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-
-        // --- 3D KOMPONENTE (THREE.JS) ---
-        const Bike3DView = ({ type, config }) => {
-            const mountRef = useRef(null);
-
-            useEffect(() => {
-                // 1. Setup Scene
-                const scene = new THREE.Scene();
-                scene.background = new THREE.Color(0xf8fafc); // Passt zum Hintergrund
-
-                // Kamera
-                const camera = new THREE.PerspectiveCamera(50, mountRef.current.clientWidth / mountRef.current.clientHeight, 0.1, 1000);
-                camera.position.z = 5;
-                camera.position.y = 1;
-
-                // Renderer
-                const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-                renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
-                renderer.shadowMap.enabled = true;
-                mountRef.current.appendChild(renderer.domElement);
-
-                // Licht
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-                scene.add(ambientLight);
-                const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                dirLight.position.set(5, 10, 7);
-                dirLight.castShadow = true;
-                scene.add(dirLight);
-
-                // --- MATERIALIEN ---
-                // Farbe basierend auf Archetyp (Grün für Explorer, Blau für City)
-                const frameColor = type === 'explorer' ? 0x10B981 : 0x2563EB;
-                const tireThickness = type === 'explorer' ? 0.15 : 0.08; // Dicke Reifen für Explorer
-
-                const frameMat = new THREE.MeshStandardMaterial({ color: frameColor, roughness: 0.3, metalness: 0.7 });
-                const rubberMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
-                const chromeMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.2, metalness: 0.9 });
-                const seatMat = new THREE.MeshStandardMaterial({ color: 0x3f2e22, roughness: 0.8 });
-
-                const bikeGroup = new THREE.Group();
-
-                // --- GEOMETRIE GENERIEREN (Abstraktes Bike) ---
-
-                // 1. Räder (Torus)
-                const wheelGeo = new THREE.TorusGeometry(0.7, tireThickness, 16, 50);
-
-                const backWheel = new THREE.Mesh(wheelGeo, rubberMat);
-                backWheel.position.x = -1.2;
-                bikeGroup.add(backWheel);
-
-                const frontWheel = new THREE.Mesh(wheelGeo, rubberMat);
-                frontWheel.position.x = 1.2;
-                bikeGroup.add(frontWheel);
-
-                // Felgen (Innenleben)
-                const rimGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.05, 32);
-                rimGeo.rotateX(Math.PI / 2);
-                const backRim = new THREE.Mesh(rimGeo, chromeMat);
-                backRim.position.x = -1.2;
-                bikeGroup.add(backRim);
-                const frontRim = new THREE.Mesh(rimGeo, chromeMat);
-                frontRim.position.x = 1.2;
-                bikeGroup.add(frontRim);
-
-                // 2. Rahmen (Zylinder verbinden)
-                const frameThick = 0.06;
-
-                // Unterrohr
-                const downTubeGeo = new THREE.CylinderGeometry(frameThick, frameThick, 1.4, 16);
-                const downTube = new THREE.Mesh(downTubeGeo, frameMat);
-                downTube.position.set(-0.5, 0.0, 0);
-                downTube.rotation.z = Math.PI / 2.5;
-                bikeGroup.add(downTube);
-
-                // Oberrohr
-                const topTubeGeo = new THREE.CylinderGeometry(frameThick, frameThick, 1.3, 16);
-                const topTube = new THREE.Mesh(topTubeGeo, frameMat);
-                topTube.position.set(-0.1, 0.6, 0);
-                topTube.rotation.z = Math.PI / 2 + 0.1;
-                bikeGroup.add(topTube);
-
-                // Sattelrohr
-                const seatTubeGeo = new THREE.CylinderGeometry(frameThick, frameThick, 1.4, 16);
-                const seatTube = new THREE.Mesh(seatTubeGeo, frameMat);
-                seatTube.position.set(-0.6, 0.3, 0);
-                seatTube.rotation.z = -0.2;
-                bikeGroup.add(seatTube);
-
-                // Gabel (Vorne)
-                const forkGeo = new THREE.CylinderGeometry(0.04, 0.03, 1.0, 16);
-                const fork = new THREE.Mesh(forkGeo, frameMat);
-                fork.position.set(1.2, 0.0, 0.1); // Rechts leicht versetzt
-                fork.rotation.z = -0.3;
-                bikeGroup.add(fork);
-
-                // Lenker
-                const handleBarGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.8, 16);
-                handleBarGeo.rotateX(Math.PI / 2);
-                const handleBar = new THREE.Mesh(handleBarGeo, rubberMat);
-                handleBar.position.set(1.0, 0.85, 0);
-                bikeGroup.add(handleBar);
-
-                // Sattel
-                const seatGeo = new THREE.BoxGeometry(0.4, 0.1, 0.3);
-                const seat = new THREE.Mesh(seatGeo, seatMat);
-                seat.position.set(-0.7, 0.95, 0);
-                bikeGroup.add(seat);
-
-                // Motor Block (Unten Mitte) - Wenn "HyperDrive" gewählt ist, größer
-                const motorSize = config.components.some(c => c.name.includes("HyperDrive")) ? 0.35 : 0.25;
-                const motorGeo = new THREE.SphereGeometry(motorSize, 32, 16);
-                const motor = new THREE.Mesh(motorGeo, new THREE.MeshStandardMaterial({ color: 0x333333 }));
-                motor.position.set(-0.6, -0.4, 0);
-                bikeGroup.add(motor);
-
-                // Akku (Am Unterrohr)
-                const batteryGeo = new THREE.BoxGeometry(0.8, 0.15, 0.12);
-                const battery = new THREE.Mesh(batteryGeo, new THREE.MeshStandardMaterial({ color: 0x111111 }));
-                battery.position.set(-0.15, 0.05, 0);
-                battery.rotation.z = Math.PI / 2.5;
-                bikeGroup.add(battery);
-
-                scene.add(bikeGroup);
-
-                // Animation Loop
-                const animate = () => {
-                    requestAnimationFrame(animate);
-                    // Langsame Rotation zur Präsentation
-                    bikeGroup.rotation.y += 0.005;
-                    renderer.render(scene, camera);
-                };
-                animate();
-
-                // Cleanup
-                return () => {
-                    if (mountRef.current) {
-                        mountRef.current.removeChild(renderer.domElement);
-                    }
-                    // Geometrien aufräumen um Speicherlecks zu verhindern (optional im Prototyp)
-                };
-            }, [type, config]); // Re-Render bei Änderung
-
-            return <div ref={mountRef} className="w-full h-full rounded-2xl shadow-inner bg-slate-100/50" />;
-        };
-
-        // --- ICONS ---
-        const IconZap = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>;
-        const IconShield = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>;
-        const IconBattery = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="6" width="18" height="12" rx="2" ry="2" /><line x1="23" y1="13" x2="23" y2="11" /></svg>;
-        const IconAward = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" /></svg>;
-        const IconTrendingUp = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>;
-        const IconBike = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="5.5" cy="17.5" r="3.5" /><circle cx="18.5" cy="17.5" r="3.5" /><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2" /></svg>;
-        const IconRefresh = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>;
-        const IconSettings = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
-        const IconList = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>;
-
-        // --- DATEN ---
-        const archetypes = [
-            {
-                id: 'commuter',
-                title: 'Der Stadt-Ninja',
-                desc: 'Asphalt ist dein Revier. Du brauchst Speed und Agilität zwischen Autos.',
-                iconComponent: IconZap,
-                iconColor: "text-blue-500",
-                baseStats: { price: 2000, weight: 15, range: 40, agility: 80 }
-            },
-            {
-                id: 'explorer',
-                title: 'Der Alpen-Bezwinger',
-                desc: 'Kein Berg ist zu hoch. Du suchst Schotter, Schlamm und Freiheit.',
-                iconComponent: IconShield,
-                iconColor: "text-green-500",
-                baseStats: { price: 2800, weight: 22, range: 60, agility: 50 }
-            }
-        ];
-
-        const storyNodes = [
-            {
-                id: 1,
-                text: "Du startest deine Tour. Vor dir liegt eine endlos lange, kerzengerade Straße. Wie gehst du es an?",
-                options: [
-                    { text: "Ich will maximalen Speed, egal was es kostet!", effect: { component: 'Motor', name: 'HyperDrive X', price: 500, range: -10, weight: 2, tag: 'speed' } },
-                    { text: "Ich genieße die Landschaft und spare Akku.", effect: { component: 'Motor', name: 'EcoCruise 2.0', price: 200, range: +20, weight: 0, tag: 'eco' } }
-                ]
-            },
-            {
-                id: 2,
-                text: "Plötzlich ändert sich das Wetter. Ein heftiger Regenschauer prasselt nieder und die Straße wird rutschig.",
-                options: [
-                    { text: "Ich brauche maximalen Grip, Sicherheit geht vor.", effect: { component: 'Reifen', name: 'GripMaster All-Weather', price: 150, range: -5, weight: 1, tag: 'safe' } },
-                    { text: "Macht mir nichts, ich drifte gerne. Leichte Reifen!", effect: { component: 'Reifen', name: 'SlickRacers', price: 80, range: +5, weight: -1, tag: 'budget' } }
-                ]
-            },
-            {
-                id: 3,
-                text: "Du planst einen Wochenend-Trip. Wie weit willst du kommen?",
-                options: [
-                    { text: "Einmal quer durchs Land. Ich brauche ein Kraftwerk.", effect: { component: 'Akku', name: 'PowerCell 800Wh', price: 600, range: +80, weight: 4, tag: 'range' } },
-                    { text: "Nur bis zum Café und zurück. Leichtes Gepäck ist mir wichtiger.", effect: { component: 'Akku', name: 'Compact 400Wh', price: 300, range: +30, weight: 1, tag: 'agile' } }
-                ]
-            }
-        ];
-
-        // Daten für den manuellen Modus
-        const manualOptions = {
-            Motor: [
-                { name: 'HyperDrive X', price: 500, weight: 2, range: -10, tag: 'speed', desc: 'Maximale Power für Steigungen.' },
-                { name: 'EcoCruise 2.0', price: 200, weight: 0, range: 20, tag: 'eco', desc: 'Effizient und leise.' },
-                { name: 'CityFlow 300', price: 350, weight: 1, range: 5, tag: 'balanced', desc: 'Perfekter Allrounder.' }
-            ],
-            Reifen: [
-                { name: 'GripMaster All-Weather', price: 150, weight: 1, range: -5, tag: 'safe', desc: 'Hält bei jedem Wetter.' },
-                { name: 'SlickRacers', price: 80, weight: -1, range: 5, tag: 'budget', desc: 'Minimaler Rollwiderstand.' },
-                { name: 'UrbanShield', price: 110, weight: 0.5, range: 0, tag: 'durable', desc: 'Pannenschutz für die Stadt.' }
-            ],
-            Akku: [
-                { name: 'PowerCell 800Wh', price: 600, weight: 4, range: 80, tag: 'range', desc: 'Für Tagestouren ohne Sorgen.' },
-                { name: 'Compact 400Wh', price: 300, weight: 1, range: 30, tag: 'agile', desc: 'Leicht und schnell geladen.' },
-                { name: 'Standard 600Wh', price: 450, weight: 2.5, range: 55, tag: 'standard', desc: 'Der Standard für jeden Tag.' }
-            ]
-        };
-
-        const ProgressBar = ({ current, total }) => {
-            const progress = Math.min(100, Math.max(0, (current / total) * 100));
-
-            return (
-                <div className="relative w-full h-12 mb-10 flex items-center">
-                    {/* Track */}
-                    <div className="absolute w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-700 ease-out"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-
-                    {/* Bike Icon */}
+        <div class="grid gap-6 md:grid-cols-1 max-w-md mx-auto mt-12">
+            <a href="story.html"
+                class="group relative block bg-white p-8 rounded-3xl border-2 border-blue-100 hover:border-blue-500 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+                <div
+                    class="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-6 -mt-6 transition-transform group-hover:scale-125">
+                </div>
+                <div class="relative z-10 flex items-center gap-6">
                     <div
-                        className="absolute top-0 transition-all duration-700 ease-out z-10 -mt-2"
-                        style={{ left: `calc(${progress}% - 20px)` }}
-                    >
-                        <div className="bg-white p-2 rounded-full shadow-lg border-2 border-blue-500 text-blue-600 transform hover:scale-110 transition-transform">
-                            <IconBike className="w-6 h-6" />
-                        </div>
+                        class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                        </svg>
+                    </div>
+                    <div class="text-left">
+                        <h3 class="text-2xl font-bold text-gray-800 group-hover:text-blue-600 transition-colors">Story
+                            Modus</h3>
+                        <p class="text-gray-500 text-sm mt-1">Erlebe eine interaktive Geschichte und konfiguriere dein
+                            Bike.</p>
                     </div>
                 </div>
-            );
-        };
+            </a>
 
-        // --- MAIN APP ---
-        const EBikeStoryConfigurator = () => {
-            const [mode, setMode] = useState(null); // 'story' | 'manual'
-            const [step, setStep] = useState(0);
-            const [selectedArchetype, setSelectedArchetype] = useState(null);
-            const [config, setConfig] = useState({
-                components: [],
-                stats: { price: 0, weight: 0, range: 0, agility: 0 },
-                tags: []
-            });
-
-            // Für manuellen Modus
-            const manualSteps = ['Motor', 'Reifen', 'Akku'];
-
-            const resetConfig = () => {
-                setStep(0);
-                setMode(null);
-                setSelectedArchetype(null);
-                setConfig({ components: [], stats: { price: 0, weight: 0, range: 0, agility: 0 }, tags: [] });
-            };
-
-            const handleArchetypeSelect = (archetype, selectedMode) => {
-                setSelectedArchetype(archetype);
-                setConfig({ ...config, stats: { ...archetype.baseStats } });
-                setMode(selectedMode);
-                setStep(1);
-            };
-
-            const updateConfig = (componentType, name, price, weight, range, tag) => {
-                setConfig((prev) => ({
-                    components: [...prev.components, { type: componentType, name: name }],
-                    stats: {
-                        price: prev.stats.price + price,
-                        weight: prev.stats.weight + weight,
-                        range: prev.stats.range + range,
-                        agility: prev.stats.agility
-                    },
-                    tags: [...prev.tags, tag]
-                }));
-            };
-
-            const handleStoryOptionSelect = (option) => {
-                const effect = option.effect;
-                updateConfig(effect.component, effect.name, effect.price, effect.weight, effect.range, effect.tag);
-
-                if (step < storyNodes.length) {
-                    setStep(step + 1);
-                } else {
-                    setStep(4); // Result
-                }
-            };
-
-            const handleManualOptionSelect = (item, type) => {
-                updateConfig(type, item.name, item.price, item.weight, item.range, item.tag);
-
-                if (step < manualSteps.length) {
-                    setStep(step + 1);
-                } else {
-                    setStep(4); // Result
-                }
-            };
-
-            const getBadges = () => {
-                const badges = [];
-                const { stats, tags } = config;
-                if (stats.range > 120) badges.push({ label: 'Reichweiten-König', iconComp: IconBattery, color: 'bg-blue-100 text-blue-700' });
-                if (stats.price < 3000) badges.push({ label: 'Budget-Held', iconComp: IconTrendingUp, color: 'bg-green-100 text-green-700' });
-                if (tags.includes('eco')) badges.push({ label: 'Eco-Warrior', iconComp: IconAward, color: 'bg-teal-100 text-teal-700' });
-                if (stats.weight < 20) badges.push({ label: 'Federgewicht', iconComp: IconZap, color: 'bg-yellow-100 text-yellow-700' });
-                if (badges.length === 0) badges.push({ label: 'Allrounder', iconComp: IconBike, color: 'bg-gray-100 text-gray-700' });
-                return badges;
-            };
-
-            const getComponentIcon = (type) => {
-                switch (type) {
-                    case 'Motor': return IconZap;
-                    case 'Akku': return IconBattery;
-                    case 'Reifen': return IconSettings;
-                    default: return IconBike;
-                }
-            };
-
-            // --- RENDERERS ---
-            const RenderIntro = () => (
-                <div className="space-y-6 animate-fadeIn text-center max-w-4xl mx-auto mt-10">
-                    <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-teal-500 mb-4">VeloVenture</h1>
-                    <p className="text-xl text-gray-600 max-w-2xl mx-auto">Dein Weg zum perfekten eBike. Wähle deinen Pfad.</p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-16 px-4">
-                        {/* Story Mode Card */}
-                        <div className="bg-white p-8 rounded-3xl border-2 border-blue-100 hover:border-blue-500 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group relative overflow-hidden"
-                            onClick={() => handleArchetypeSelect(archetypes[0], 'story')}>
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
-                            <div className="relative z-10">
-                                <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                    <IconBike className="w-8 h-8" />
-                                </div>
-                                <h3 className="text-2xl font-bold text-gray-800 mb-2">Story Modus</h3>
-                                <p className="text-gray-500">Erlebe ein Abenteuer und lass deine Entscheidungen das Bike formen.</p>
-                                <div className="mt-6 text-blue-600 font-bold flex items-center justify-center gap-2">
-                                    Starten <span className="group-hover:translate-x-1 transition-transform">→</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Expert Mode Card */}
-                        <div className="bg-white p-8 rounded-3xl border-2 border-teal-100 hover:border-teal-500 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group relative overflow-hidden"
-                            onClick={() => handleArchetypeSelect(archetypes[1], 'manual')}>
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
-                            <div className="relative z-10">
-                                <div className="w-16 h-16 bg-teal-100 text-teal-600 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:bg-teal-600 group-hover:text-white transition-colors">
-                                    <IconList className="w-8 h-8" />
-                                </div>
-                                <h3 className="text-2xl font-bold text-gray-800 mb-2">Experten Modus</h3>
-                                <p className="text-gray-500">Wähle jede Komponente selbst aus und baue dein Traum-Bike im Detail.</p>
-                                <div className="mt-6 text-teal-600 font-bold flex items-center justify-center gap-2">
-                                    Konfigurieren <span className="group-hover:translate-x-1 transition-transform">→</span>
-                                </div>
-                            </div>
-                        </div>
+            <!-- Platzhalter für zukünftige Gamification Elemente -->
+            <div class="relative block bg-gray-50 p-8 rounded-3xl border-2 border-dashed border-gray-200 opacity-75">
+                <div class="flex items-center gap-6">
+                    <div class="w-16 h-16 bg-gray-200 text-gray-400 rounded-2xl flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                    </div>
+                    <div class="text-left">
+                        <h3 class="text-2xl font-bold text-gray-400">Coming Soon</h3>
+                        <p class="text-gray-400 text-sm mt-1">Weitere Gamification Module in Entwicklung.</p>
                     </div>
                 </div>
-            );
+            </div>
+        </div>
+    </div>
 
-            const RenderStoryStep = () => {
-                const node = storyNodes[step - 1];
-                return (
-                    <div className="max-w-2xl mx-auto space-y-8 animate-slideUp mt-10">
-                        <div className="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
-                            <span>Story Mode</span>
-                            <span>Kapitel {step} / {storyNodes.length}</span>
-                        </div>
-
-                        <ProgressBar current={step} total={storyNodes.length + 1} />
-
-                        <h3 className="text-3xl font-bold text-gray-800 leading-tight">
-                            {node.text}
-                        </h3>
-
-                        <div className="grid gap-4 mt-8">
-                            {node.options.map((opt, idx) => (
-                                <button key={idx} onClick={() => handleStoryOptionSelect(opt)}
-                                    className="p-6 bg-white border border-gray-200 rounded-xl hover:bg-blue-50 hover:border-blue-500 text-left transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-4 group">
-                                    <div className="w-6 h-6 rounded-full border-2 border-gray-300 group-hover:border-blue-500 flex-shrink-0"></div>
-                                    <span className="text-lg font-medium text-gray-700 group-hover:text-blue-700">{opt.text}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                );
-            };
-
-            const RenderManualStep = () => {
-                const currentType = manualSteps[step - 1];
-                const options = manualOptions[currentType];
-
-                return (
-                    <div className="max-w-3xl mx-auto space-y-8 animate-slideUp mt-10">
-                        <div className="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
-                            <span>Experten Modus</span>
-                            <span>Schritt {step} / {manualSteps.length}</span>
-                        </div>
-
-                        <ProgressBar current={step} total={manualSteps.length + 1} />
-
-                        <h3 className="text-3xl font-bold text-gray-800 leading-tight mb-2">
-                            Wähle deinen <span className="text-teal-600">{currentType}</span>
-                        </h3>
-                        <p className="text-gray-500">Entscheide dich für die Komponente, die am besten zu deinem Fahrstil passt.</p>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-                            {options.map((opt, idx) => (
-                                <button key={idx} onClick={() => handleManualOptionSelect(opt, currentType)}
-                                    className="p-6 bg-white border-2 border-gray-100 rounded-2xl hover:border-teal-500 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-start gap-3 text-left group h-full">
-                                    <div className="w-10 h-10 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center group-hover:bg-teal-600 group-hover:text-white transition-colors">
-                                        {getComponentIcon(currentType)({ className: "w-5 h-5" })}
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-lg text-gray-800">{opt.name}</div>
-                                        <div className="text-sm text-gray-400 mt-1">{opt.desc}</div>
-                                    </div>
-                                    <div className="mt-auto pt-4 w-full flex justify-between items-end border-t border-gray-50">
-                                        <span className="font-bold text-teal-600">{opt.price} €</span>
-                                        <span className="text-xs text-gray-400">{opt.weight > 0 ? '+' : ''}{opt.weight} kg</span>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                );
-            };
-
-            const RenderResult = () => {
-                const badges = getBadges();
-                return (
-                    <div className="space-y-8 animate-fadeIn max-w-6xl mx-auto mt-6">
-                        <div className="text-center space-y-2">
-                            <h2 className="text-4xl font-extrabold text-gray-800">
-                                Dein <span className="text-blue-600">Ergebnis</span>
-                            </h2>
-                            <p className="text-gray-500">Konfiguration abgeschlossen</p>
-                        </div>
-
-                        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 flex flex-col md:flex-row">
-
-                            {/* LINKE SPALTE: 3D MODELL */}
-                            <div className="w-full md:w-1/2 bg-gray-50 p-6 flex flex-col relative h-[500px] md:h-auto">
-                                <div className="absolute top-6 left-6 z-10">
-                                    <h3 className="text-2xl font-bold text-gray-800">{selectedArchetype ? selectedArchetype.title : 'Custom Bike'}</h3>
-                                    <span className="text-blue-600 font-semibold text-sm">{mode === 'story' ? 'Story Build' : 'Expert Build'}</span>
-                                </div>
-
-                                {/* 3D RENDER CANVAS */}
-                                <div className="flex-grow rounded-2xl overflow-hidden border border-gray-200 shadow-inner bg-white relative">
-                                    <Bike3DView type={selectedArchetype ? selectedArchetype.id : 'commuter'} config={config} />
-                                    <div className="absolute bottom-4 right-4 text-xs text-gray-400 bg-white/80 px-2 py-1 rounded">Interaktives 3D</div>
-                                </div>
-                            </div>
-
-                            {/* RECHTE SPALTE: DETAILS & BADGES */}
-                            <div className="w-full md:w-1/2 p-8 flex flex-col justify-between">
-                                <div>
-                                    <h4 className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-4">Verbaute Komponenten</h4>
-                                    <div className="space-y-3 mb-8">
-                                        {config.components.map((c, i) => {
-                                            const CompIcon = getComponentIcon(c.type);
-                                            return (
-                                                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                                                    <div className="p-2 bg-white rounded-lg text-blue-500 shadow-sm">
-                                                        <CompIcon className="w-5 h-5" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-xs text-gray-400 font-semibold uppercase">{c.type}</div>
-                                                        <div className="text-gray-800 font-medium">{c.name}</div>
-                                                    </div>
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-
-                                    <div className="grid grid-cols-3 gap-4 mb-8">
-                                        <div className="text-center">
-                                            <div className="text-xs text-gray-400 font-bold uppercase">Reichweite</div>
-                                            <div className="text-xl font-extrabold text-gray-800">{config.stats.range} <span className="text-xs font-normal text-gray-500">km</span></div>
-                                        </div>
-                                        <div className="text-center border-l border-gray-100">
-                                            <div className="text-xs text-gray-400 font-bold uppercase">Gewicht</div>
-                                            <div className="text-xl font-extrabold text-gray-800">{config.stats.weight} <span className="text-xs font-normal text-gray-500">kg</span></div>
-                                        </div>
-                                        <div className="text-center border-l border-gray-100">
-                                            <div className="text-xs text-gray-400 font-bold uppercase">Preis</div>
-                                            <div className="text-xl font-extrabold text-blue-600">{config.stats.price} €</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <div className="bg-slate-900 rounded-xl p-5 text-white">
-                                        <h4 className="text-sm font-bold mb-3 flex items-center gap-2 text-yellow-400">
-                                            <IconAward className="w-4 h-4" /> Deine Auszeichnungen
-                                        </h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {badges.map((badge, idx) => (
-                                                <span key={idx} className="text-xs font-bold bg-white/20 px-3 py-1 rounded-full">{badge.label}</span>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <button onClick={resetConfig}
-                                        className="w-full py-4 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
-                                        <IconRefresh className="w-4 h-4" /> Neue Konfiguration
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            return (
-                <div className="w-full max-w-6xl mx-auto p-4 md:p-8">
-                    {step === 0 && <RenderIntro />}
-                    {(step > 0 && step <= 3 && mode === 'story') && <RenderStoryStep />}
-                    {(step > 0 && step <= 3 && mode === 'manual') && <RenderManualStep />}
-                    {step === 4 && <RenderResult />}
-                </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<EBikeStoryConfigurator />);
-    </script>
 </body>
 
 </html>
